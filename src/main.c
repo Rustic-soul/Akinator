@@ -2,43 +2,40 @@
 #include <stdio.h>
 #include <malloc.h>
 
-int main()
+int main(int argc, char *argv[])
 {
-    FILE *fp_out   = fopen("data/newbasedata2.txt", "w");
-    FILE *fp_graph = fopen("graphiz/output.dot", "w");
-    FILE *fp_src_tree = fopen("data/newbasedata.txt", "r");
-
-    TreeNode RootTree = {NULL, NULL, NULL};
-    struct Array *src_array = ctor_struct_arr(fp_src_tree);
-
-    Stack stk1 = {};
-    StackCtor(&stk1, 10);
-
-    CreateStartTree(&RootTree, src_array->arr_ptr, &stk1); 
+    CHECK_ARGC(argc);
     
-    free(src_array->arr_ptr);
-    free(src_array);
-    fclose(fp_src_tree);
-    StackDtor(&stk1);
+    // Создание стартового дерева из базы данных
+    FILE *fp_sb = fopen(argv[1], "r");
+    CHECK_OPEN_FILE(fp_sb);
 
+    TreeNode *RootTree = CreateStartTree(fp_sb); 
+    fclose(fp_sb);
+    
+    // Стартовое меню игры
     printf("Начало игры, если готовы введите (Y)es: ");
     int cmd = getchar();
-    CleanBuffer();
 
-    while ((cmd == 'Y') || (cmd == 'y'))
-    {
-        RunAkinator(&RootTree);
-        printf("Введите (Y)es, если хотите сыграть ещё раз или (N)o для завершения: ");
-        cmd = getchar();
+    if (cmd != '\n')
         CleanBuffer();
+    
+    while ((cmd == 'Y') || (cmd == 'y') || (cmd == '\n'))
+    {
+        RunAkinator(RootTree);
+        printf("\nВведите (Y)es, если хотите сыграть ещё раз или (N)o для завершения: ");
+        cmd = getchar();
+        printf("{{{{{{{%c}}}}}}}\n", cmd);
+        
+        if (cmd != '\n')
+            CleanBuffer();
     }
     
-    fprintf(fp_graph, "digraph {");
-    CreateGraph(&RootTree, fp_graph);
-    fprintf(fp_graph, "}");
-    fclose(fp_graph);
+    // Дополнение файла newgraph.dot деревом из текущей игры 
+    CREATE_GRAPH(RootTree, argv[3]);
 
-    PreorderPrintTree(&RootTree, fp_out);
-    fclose(fp_out);
-    CleanTree(&RootTree);
+    // Дополнение файла newbasedata.txt базой дерева с текущей игры
+    SAVE_NEW_BASEDATA(RootTree, argv[2]);
+    
+    CleanTree(RootTree);
 }

@@ -5,6 +5,8 @@
 #include <string.h>
 #include <assert.h>
 
+static const char *CRINGE_WORD = "абобус";
+
 int RunAkinator(TreeNode *root)
 {
     if (root->data == NULL)
@@ -18,11 +20,13 @@ int RunAkinator(TreeNode *root)
     {
         fprintf(stdout, "Финиш! Это [%s], я угадал?[y/n]: ", root->data);
         int answer = getchar();
-        CleanBuffer();
+        
+        if (answer != '\n')
+            CleanBuffer();
 
-        if ((answer == 'y') || (answer == 'Y'))
+        if ((answer == 'y') || (answer == 'Y') || (answer == '\n'))
             return 0;
-        else if ((answer == 'n') || (answer == 'N'))
+        else if ((answer == 'n') || (answer == 'N') || (answer == '.'))
             return AddElemTree(root);
         else
             return 1;
@@ -31,11 +35,13 @@ int RunAkinator(TreeNode *root)
     {
         fprintf(stdout, "Это [%s]?[y/n]: ", root->data);
         int answer = getchar();
-        CleanBuffer();
         
-        if ((answer == 'y') || (answer == 'Y'))
+        if (answer != '\n')
+            CleanBuffer();
+        
+        if ((answer == 'y') || (answer == 'Y') || (answer == '\n'))
             RunAkinator(root->LeftNode);
-        else if ((answer == 'n') || (answer == 'N'))
+        else if ((answer == 'n') || (answer == 'N') || (answer == '.'))
             RunAkinator(root->RightNode);
         else
             return 1;
@@ -103,8 +109,7 @@ int PreorderPrintTree(TreeNode *root, FILE *fp)
     if (root->RightNode)
         PreorderPrintTree(root->RightNode, fp);
 
-    if (!root->RightNode && !root->LeftNode)
-        fprintf(PATH_OUT, ")");
+    fprintf(PATH_OUT, ")");
 
     return 0;
 }
@@ -113,78 +118,90 @@ int CreateGraph(TreeNode *root, FILE *fp)
 {
     if (root->LeftNode)
     {
-        fprintf(fp, "\t%s -> %s\n", root->data, root->LeftNode->data);
+        fprintf(fp, "\t\"%s\" -> \"%s\"\n", root->data, root->LeftNode->data);
         CreateGraph(root->LeftNode, fp);
     } 
     if (root->RightNode)
     {
-        fprintf(fp, "\t%s -> %s\n", root->data, root->RightNode->data);
+        fprintf(fp, "\t\"%s\" -> \"%s\"\n", root->data, root->RightNode->data);
         CreateGraph(root->RightNode, fp);
     }
 
     return 0;
 }
 
-int CreateStartTree(TreeNode *root, char *arr, Stack *stk)
+TreeNode* CreateStartTree(FILE *fp)
 {
-    char str[1000];
-    int ncr = 0;
+    // Создание корня дерева
+    TreeNode *root = (TreeNode *)calloc(1, sizeof(TreeNode));
+    if (fp == NULL)
+        return root;
+        
+    // Создание массива с базой данных
+    struct Array *src_array = ctor_struct_arr(fp);
+    char *arr = src_array->arr_ptr; 
 
-    while(arr[ncr] != '\0')
+    // Инициализация Stack для хранения адресов узлов 
+    Stack *stk = (Stack *)calloc(1, sizeof(Stack));
+    StackCtor(stk, STACK_START_CAP);
+    
+    // Cоздания дерева из базы данных
+    StackPush(stk, root);
+    char *str = (char *)malloc(MAX_LEN_WORD_TREE);
+
+    for (int i = 0; arr[i] != '\0'; i++)
     {
-        if (arr[ncr] == '"')
+        if (arr[i] == '"')
         {
-            ncr++;
-            int i = 0;
-            while (arr[ncr] != '"')
+            i++;
+            int j = 0;
+            while (arr[i] != '\"')
             {
-                str[i] = arr[ncr];
-                ncr++;
-                i++;
+                str[j] = arr[i];
+                j++; i++;
             }
-            ncr++;
-            str[i] = '\0';
-            printf("[%s]\n", str);
+            str[j] = '\0';
 
-            if (root->data)
+            PRINT_INFO("[%s]\n", str);
+
+            if (root->data != NULL)
             {
                 root->LeftNode = (TreeNode *)calloc(1, sizeof(TreeNode));
                 root = root->LeftNode;
             }
-
-            StackPush(stk, root);
+            
+            if (arr[i+2] != ')')
+                StackPush(stk, root);
+            
             root->data = (char *)malloc(strlen(str) + 1);
             strcpy(root->data, str);
-            printf("{%s}\n\n", str);
         }
-        else if (arr[ncr] == ')')
+        else if (arr[i] == ')')
         {
-            int i = ncr;
-            int aboba = 0;
-            while (arr[i] != '\0')
-            {
-                if (arr[i] == '\"')
-                {
-                    aboba = 1;
-                    break;
-                }
-                i++;
-            }
-            if (aboba == 0)
-            {
+            TreeNode *tmp = root;
+            
+            if (stk->size == 0)
                 break;
+            
+            StackPop(stk, &root);
+            
+            if (tmp == root->LeftNode)
+            {
+                StackPush(stk, root);
+                root->RightNode = (TreeNode *)calloc(1, sizeof(TreeNode));
+                root = root->RightNode;
             }
-            StackPop(stk, &root);
-            StackPop(stk, &root);
-            root->RightNode = (TreeNode *)calloc(1, sizeof(TreeNode));
-            root = root->RightNode;
-            ncr++;
         }
-        else
-            ncr++;
     }
 
-    return 0;
+    free(src_array->arr_ptr);
+    free(src_array);
+    free(str);
+
+    StackDtor(stk);
+    free(stk);
+    
+    return root;
 }
 
 struct Array *ctor_struct_arr(FILE *fp_src)
@@ -221,18 +238,13 @@ size_t search_size_file(FILE *fp_src)
 int CleanTree(TreeNode *root)
 {
     if (root->LeftNode)
-    {
         CleanTree(root->LeftNode);
-        free(root->LeftNode);
-    }
 
     if (root->RightNode)
-    {
         CleanTree(root->RightNode);
-        free(root->RightNode);
-    }
-    
+
     free(root->data);
+    free(root);    
 
     return 0;
 }
