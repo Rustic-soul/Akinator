@@ -1,0 +1,6 @@
+[submodule "stack"]
+	path = stack
+	url = https://github.com/russian-engineer/stack.git
+[submodule "libutf8"]
+	path = libutf8
+	url = https://github.com/russian-engineer/libutf8.git
