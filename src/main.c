@@ -25,7 +25,6 @@ int main(int argc, char *argv[])
         RunAkinator(RootTree);
         printf("\nВведите (Y)es, если хотите сыграть ещё раз или (N)o для завершения: ");
         cmd = getchar();
-        printf("{{{{{{{%c}}}}}}}\n", cmd);
         
         if (cmd != '\n')
             CleanBuffer();
