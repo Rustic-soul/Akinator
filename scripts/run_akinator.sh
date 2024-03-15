@@ -1,20 +1,28 @@
+
+# Включение файла с флагами компиляции для DEBUG режима 
 . ./flags
 
-PATH_START_TREE="data/basedata.txt"
-PATH_NEW_TREE="data/basedata.txt"
-PATH_NEW_GRAPH="graphiz/newgraph.dot"
-
+# Переход в главную директорию akinator/
 cd ..
 
-if [[ $1 =~ "o" ]]; then
-    gcc -c src/main.c -o obj/main.o
-    gcc -c src/akinator.c -o obj/akinator.o
+if [[ $1 =~ "od" ]]; then
+    cd src/
+    gcc $CFLAGS -c main.c     -o ../obj/main.o
+    gcc $CFLAGS -c akinator.c -o ../obj/akinator.o
+    cd ..
+    gcc $CFLAGS obj/*.o -o bin/akinator
 fi
 
+if [[ $1 =~ "or" ]]; then
+    cd src/
+    gcc -O2 -c main.c     -o ../obj/main.o
+    gcc -O2 -c akinator.c -o ../obj/akinator.o
+    cd ..
+    gcc -O2 obj/*.o -o bin/akinator
+fi
 
 if [[ $1 =~ "p" ]]; then
-    gcc obj/*.o -o bin/akinator
-    bin/akinator $PATH_START_TREE $PATH_NEW_TREE $PATH_NEW_GRAPH  
+    bin/akinator  
 fi
 
 if [[ $1 =~ "g" ]]; then
